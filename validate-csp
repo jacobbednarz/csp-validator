@@ -1,0 +1,96 @@
+#!/usr/bin/env ruby
+#
+# Validate a content security policy for syntax violations.
+
+# Internal: Helper for formatting the output.
+#
+# message - The message to display to the end user.
+# type    - Severity of the message. Values can be 'error', 'success' or 'info'.
+#
+# Returns a formatted string of the message.
+def output(message, type)
+  puts "\e[31m[ ✘ ]\e[0m #{message}" if type == 'error'
+  puts "\e[32m[ ✔︎ ]\e[0m #{message}" if type == 'success'
+  puts "\e[33m[ ✻ ]\e[0m #{message}" if type == 'info'
+end
+
+require 'optparse'
+require 'net/http'
+options = {}
+
+# Setup and allow options to be passed into the script.
+OptionParser.new do |opts|
+  opts.banner =
+    "Usage:\n" \
+    "\n    URL     ./validate-csp http://example.com" \
+    "\n    Inline  ./validate-csp \"default-src *; script-src; etc\"" \
+    "\n\n" \
+    'Options:'
+
+  opts.on('-r', '--report-only', 'Check using "Content-Security-Policy-Report-Only" header.') do
+    options[:report_only] = true
+  end
+end.parse!
+
+# Determine whether we are working a URL or a string.
+if ARGV[0].match(/^http/)
+  response = Net::HTTP.get_response(URI(ARGV[0]))
+  header = (options[:report_only]) ? response['Content-Security-Policy-Report-Only'] : response['Content-Security-Policy']
+
+  abort 'Sorry, no content security policy data found.' if header.nil?
+
+  csp_data = header
+else
+  csp_data = ARGV[0]
+end
+
+# Everyone needs a good default.
+if csp_data.include? 'default-src'
+  output "'default-src' is present.", 'success'
+else
+  missing_defaul_src = "The 'default-src' directive should be defined to " \
+                       'actas a default for any missing directives - ' \
+                       'See http://bit.ly/1uTJfGM.'
+  output missing_defaul_src, 'info'
+end
+
+# Ensure we have all the recommended rules for a default policy.
+required_directives = [
+  'script-src', 'object-src', 'img-src', 'media-src', 'frame-src', 'font-src',
+  'frame-ancestors', 'connect-src', 'style-src'
+]
+
+required_directives.each do |directive|
+  if csp_data.include? directive
+    output "'#{directive}' was found.", 'success'
+  else
+    output "'#{directive}' is not present.", 'error'
+  end
+end
+
+# Evaluate each directive and check for any malformed domains.
+rulesets = csp_data.split(';')
+rulesets.each do |ruleset|
+  ruleset_data = "#{ruleset}".strip
+  ruleset_items = ruleset_data.split(' ')
+  ruleset_items.each do |uri|
+    output "Invalid URI entry detected (#{uri})", 'error' if uri =~ /\.\*$/
+  end
+end
+
+if csp_data.include? 'frame-src'
+  frame_src_deprecation = "'frame-src' is being deprecated in favour of " \
+                          "'child-src' - See http://bit.ly/1uTJ3Ye."
+  output frame_src_deprecation, 'info'
+end
+
+# While not required, it is a good idea to ensure you have somewhere to report
+# any violations should they occur.
+if csp_data.include? 'report-uri'
+  output 'Violation reporting endpoint found.', 'success'
+else
+  violation_text = 'You should consider including a reporting endpoint ' \
+                   '(using report-uri) so you capture any violations - ' \
+                   'See http://bit.ly/1C4caYK'
+  output violation_text, 'info'
+end
