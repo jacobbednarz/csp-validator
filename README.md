@@ -17,3 +17,11 @@ The executable accepts either a URL or a string inline. Examples:
 # URL of a page.
 ./validate-csp http://google.com
 ```
+
+### Checks
+
+The following checks are run:
+
+- Ensure a 'default-src' is available (for any missing directives).
+- Malformed URL's.
+- Deprecation of directives.
