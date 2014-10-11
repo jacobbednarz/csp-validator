@@ -25,3 +25,20 @@ The following checks are run:
 - Ensure a 'default-src' is available (for any missing directives).
 - Malformed URL's.
 - Deprecation of directives.
+
+### Example
+
+    $ ./validate-csp http://example.com
+
+    [ ✔︎ ] 'default-src' is present.
+    [ ✔︎ ] 'script-src' was found.
+    [ ✔︎ ] 'object-src' was found.
+    [ ✔︎ ] 'img-src' was found.
+    [ ✔︎ ] 'media-src' was found.
+    [ ✔︎ ] 'frame-src' was found.
+    [ ✔︎ ] 'font-src' was found.
+    [ ✔︎ ] 'frame-ancestors' was found.
+    [ ✔︎ ] 'connect-src' was found.
+    [ ✔︎ ] 'style-src' was found.
+    [ ✻ ] 'frame-src' is being deprecated in favour of 'child-src' - See http://bit.ly/1uTJ3Ye.
+    [ ✔︎ ] Violation reporting endpoint found.
