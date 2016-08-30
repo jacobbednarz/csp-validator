@@ -33,7 +33,9 @@ OptionParser.new do |opts|
 end.parse!
 
 # Determine whether we are working a URL or a string.
-if ARGV[0].match(/^http/)
+if ARGV.length == 0
+    csp_data = ARGF.read
+elsif ARGV[0].match(/^http/)
   response = Net::HTTP.get_response(URI(ARGV[0]))
   header = (options[:report_only]) ? response['Content-Security-Policy-Report-Only'] : response['Content-Security-Policy']
 
